@@ -60,10 +60,9 @@ function WalletImport() {
     return !!wallet;
   };
 
-  WalletImport.removePlaceholderWallet = ()=> {
-    setIsImportingWallet(false)
-  }
-
+  WalletImport.removePlaceholderWallet = () => {
+    setIsImportingWallet(false);
+  };
 
   WalletImport.addPlaceholderWallet = (importText, isFailure = false) => {
     const placeholderWallet = new PlaceholderWallet();
@@ -80,9 +79,10 @@ function WalletImport() {
   /**
    *
    * @param importText
+   * @param askPassphrase async callback to ask user for a passphrase, if needed
    * @returns {Promise<void>}
    */
-  WalletImport.processImportText = async importText => {
+  WalletImport.processImportText = async (importText, askPassphrase) => {
     IdleTimerManager.setIdleTimerDisabled(true);
     // Plan:
     // -2. check if BIP38 encrypted
@@ -148,8 +148,10 @@ function WalletImport() {
     const hd4 = new HDSegwitBech32Wallet();
     hd4.setSecret(importText);
     if (hd4.validateMnemonic()) {
-      // OK its a valid BIP39 seed
+      // OK its a valid BIP39 seed, now let's ask for a passphrase
+      const passphrase = await askPassphrase();
 
+      hd4.setPassphrase(passphrase);
       if (await hd4.wasEverUsed()) {
         await hd4.fetchBalance(); // fetching balance for BIP84 only on purpose
         return WalletImport._saveWallet(hd4);
@@ -157,18 +159,21 @@ function WalletImport() {
 
       const hd2 = new HDSegwitP2SHWallet();
       hd2.setSecret(importText);
+      hd2.setPassphrase(passphrase);
       if (await hd2.wasEverUsed()) {
         return WalletImport._saveWallet(hd2);
       }
 
       const hd3 = new HDLegacyP2PKHWallet();
       hd3.setSecret(importText);
+      hd3.setPassphrase(passphrase);
       if (await hd3.wasEverUsed()) {
         return WalletImport._saveWallet(hd3);
       }
 
       const hd1 = new HDLegacyBreadwalletWallet();
       hd1.setSecret(importText);
+      hd1.setPassphrase(passphrase);
       if (await hd1.wasEverUsed()) {
         return WalletImport._saveWallet(hd1);
       }
@@ -248,18 +253,17 @@ function WalletImport() {
       if (await aezeed.validateMnemonicAsync()) {
         // not fetching txs or balances, fuck it, yolo, life is too short
         return WalletImport._saveWallet(aezeed);
-      } else {
-        // there is a chance that a password is required
-        if (await aezeed.mnemonicInvalidPassword()) {
-          const password = await prompt(loc.wallets.enter_bip38_password, '', false);
-          if (!password) {
-            // no passord is basically cancel whole aezeed import process
-            throw new Error(loc._.bad_password);
-          }
+      }
 
-          const mnemonics = importText.split(':')[0];
-          return WalletImport.processImportText(mnemonics + ':' + password);
+      // there is a chance that a password is required
+      while (await aezeed.mnemonicInvalidPassword()) {
+        const password = await askPassphrase(true);
+        if (!password) {
+          // no passord is basically cancel whole aezeed import process
+          throw new Error(loc._.bad_password);
         }
+        aezeed.setPassphrase(password);
+        if (!(await aezeed.mnemonicInvalidPassword())) return WalletImport._saveWallet(aezeed);
       }
     } catch (_) {}
 
@@ -270,11 +274,16 @@ function WalletImport() {
       s1.setSecret(importText);
 
       if (s1.validateMnemonic()) {
+        // OK its a valid SLIP39 seed, now let's ask for a passphrase
+        const passphrase = await askPassphrase();
+
+        s1.setPassphrase(passphrase);
         if (await s1.wasEverUsed()) {
           return WalletImport._saveWallet(s1);
         }
 
         const s2 = new SLIP39LegacyP2PKHWallet();
+        s2.setPassphrase(passphrase);
         s2.setSecret(importText);
         if (await s2.wasEverUsed()) {
           return WalletImport._saveWallet(s2);
@@ -282,6 +291,7 @@ function WalletImport() {
 
         const s3 = new SLIP39SegwitBech32Wallet();
         s3.setSecret(importText);
+        s3.setPassphrase(passphrase);
         return WalletImport._saveWallet(s3);
       }
     }

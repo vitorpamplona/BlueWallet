@@ -19,6 +19,7 @@ import { isDesktop, isMacCatalina } from '../../blue_modules/environment';
 import { BlueStorageContext } from '../../blue_modules/storage-context';
 
 const fs = require('../../blue_modules/fs');
+const prompt = require('../../blue_modules/prompt');
 
 const WalletsImport = () => {
   const [isToolbarVisibleForAndroid, setIsToolbarVisibleForAndroid] = useState(false);
@@ -77,7 +78,18 @@ const WalletsImport = () => {
     navigation.dangerouslyGetParent().pop();
     await new Promise(resolve => setTimeout(resolve, 500)); // giving some time to animations
     try {
-      await WalletImport.processImportText(importText);
+      const askPassphrase = async (aezeed = false) => {
+        try {
+          return await prompt(
+            aezeed ? '' : loc.wallets.import_passphrase_title,
+            aezeed ? loc.wallets.enter_bip38_password : loc.wallets.import_passphrase_message,
+          );
+        } catch (e) {
+          // cancel pressed
+          return null;
+        }
+      };
+      await WalletImport.processImportText(importText, askPassphrase);
       WalletImport.removePlaceholderWallet();
     } catch (error) {
       console.log(error);
