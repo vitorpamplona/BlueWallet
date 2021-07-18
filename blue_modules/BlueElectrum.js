@@ -5,11 +5,12 @@ import { LegacyWallet, SegwitBech32Wallet, SegwitP2SHWallet } from '../class';
 import DefaultPreference from 'react-native-default-preference';
 import RNWidgetCenter from 'react-native-widget-center';
 import loc from '../loc';
+import { isTorCapable } from '../blue_modules/environment';
 const bitcoin = require('bitcoinjs-lib');
 const ElectrumClient = require('electrum-client');
 const reverse = require('buffer-reverse');
 const BigNumber = require('bignumber.js');
-const torrific = require('../blue_modules/torrific');
+const torrific = isTorCapable ? require('../blue_modules/torrific') : undefined;
 const Realm = require('realm');
 
 const ELECTRUM_HOST = 'electrum_host';
@@ -101,13 +102,15 @@ async function connectMain() {
 
   try {
     console.log('begin connection:', JSON.stringify(usingPeer));
-    mainClient = new ElectrumClient(
-      usingPeer.host.endsWith('.onion') ? torrific : global.net,
-      global.tls,
-      usingPeer.ssl || usingPeer.tcp,
-      usingPeer.host,
-      usingPeer.ssl ? 'tls' : 'tcp',
-    );
+    mainClient = isTorCapable
+      ? new ElectrumClient(
+          usingPeer.host.endsWith('.onion') ? torrific : global.net,
+          global.tls,
+          usingPeer.ssl || usingPeer.tcp,
+          usingPeer.host,
+          usingPeer.ssl ? 'tls' : 'tcp',
+        )
+      : new ElectrumClient(global.net, global.tls, usingPeer.ssl || usingPeer.tcp, usingPeer.host, usingPeer.ssl ? 'tls' : 'tcp');
     mainClient.onError = function (e) {
       console.log('electrum mainClient.onError():', e.message);
       if (mainConnected) {
@@ -805,13 +808,9 @@ module.exports.calculateBlockTime = function (height) {
  * @returns {Promise<boolean>} Whether provided host:port is a valid electrum server
  */
 module.exports.testConnection = async function (host, tcpPort, sslPort) {
-  const client = new ElectrumClient(
-    host.endsWith('.onion') ? torrific : global.net,
-    global.tls,
-    sslPort || tcpPort,
-    host,
-    sslPort ? 'tls' : 'tcp',
-  );
+  const client = isTorCapable
+    ? new ElectrumClient(host.endsWith('.onion') ? torrific : global.net, global.tls, sslPort || tcpPort, host, sslPort ? 'tls' : 'tcp')
+    : new ElectrumClient(global.net, global.tls, sslPort || tcpPort, host, sslPort ? 'tls' : 'tcp');
 
   client.onError = () => {}; // mute
   let timeoutId = false;

@@ -5,8 +5,9 @@ import { View, StyleSheet } from 'react-native';
 import navigationStyle from '../../components/navigationStyle';
 import { BlueButton, BlueCard, BlueLoading, BlueSpacing20, BlueText, SafeBlueArea } from '../../BlueComponents';
 import loc from '../../loc';
+import { isTorCapable } from '../../blue_modules/environment';
 
-const torrific = require('../../blue_modules/torrific');
+const torrific = isTorCapable ? require('../../blue_modules/torrific') : undefined;
 
 const styles = StyleSheet.create({
   torSupported: {
@@ -14,6 +15,9 @@ const styles = StyleSheet.create({
   },
 });
 
+/*
+  TorSettings is not displayed in Settings menu if isTorCapable is false. No need to provide code protection.
+*/
 const TorSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [daemonStatus, setDaemonStatus] = useState('');
