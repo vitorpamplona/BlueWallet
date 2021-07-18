@@ -21,7 +21,7 @@ const currency = require('../../blue_modules/currency');
 const BlueElectrum = require('../../blue_modules/BlueElectrum');
 const Bignumber = require('bignumber.js');
 const bitcoin = require('bitcoinjs-lib');
-const torrific = isTorCapable ? require('../../blue_modules/torrific') : undefined;
+const torrific = require('../../blue_modules/torrific');
 
 export default class Confirm extends Component {
   static contextType = BlueStorageContext;

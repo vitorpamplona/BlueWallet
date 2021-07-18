@@ -10,7 +10,7 @@ const bitcoin = require('bitcoinjs-lib');
 const ElectrumClient = require('electrum-client');
 const reverse = require('buffer-reverse');
 const BigNumber = require('bignumber.js');
-const torrific = isTorCapable ? require('./torrific') : undefined;
+const torrific = require('./torrific');
 const Realm = require('realm');
 
 const ELECTRUM_HOST = 'electrum_host';

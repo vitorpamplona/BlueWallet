@@ -5,9 +5,8 @@ import { View, StyleSheet } from 'react-native';
 import navigationStyle from '../../components/navigationStyle';
 import { BlueButton, BlueCard, BlueLoading, BlueSpacing20, BlueText, SafeBlueArea } from '../../BlueComponents';
 import loc from '../../loc';
-import { isTorCapable } from '../../blue_modules/environment';
 
-const torrific = isTorCapable ? require('../../blue_modules/torrific') : undefined;
+const torrific = require('../../blue_modules/torrific');
 
 const styles = StyleSheet.create({
   torSupported: {
